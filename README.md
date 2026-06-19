@@ -21,8 +21,3 @@ This project documents an SSH log investigation performed in a local instance of
 ### Main Finding
 Source IP `10.0.0.25` exhibited highly suspicious, automated behavior, generating multiple failed authentication attempts with a maximum `auth_attempts` value of 8, alongside 16 successful logins.
 
-## Investigation Methodology & Queries (SPL)
-
-### 1. Data Ingestion Verification
-```splunk
-index=auth_logs | stats count
