@@ -1,36 +1,41 @@
-<p align="center">
-  <img src="assets/hero.png" alt="SSH threat hunting — from authentication logs to investigation findings" width="960">
-</p>
+![SSH authentication analysis with Splunk Enterprise](assets/hero.png)
 
-# SSH Authentication Log Analysis & Threat Hunting Using Splunk
+# SSH Authentication Log Analysis
 
-An investigation of SSH login behavior using JSON-based Zeek-style logs in a local Splunk Enterprise instance. This project explores abnormal authentication activity, potential brute-force attempts, and reusable detection logic.
+An SSH threat-hunting investigation in Splunk Enterprise: explore authentication outcomes, investigate repeated failures, and build reusable detection logic. The visual walkthrough recreates the searches and findings documented in the report.
 
-**[Read the investigation report](Splunk_SSH_Analysis_Report.pdf)** · [Process walkthrough](#investigation-process) · [Key findings](#key-findings) · [Lab details](#lab-details)
+**[Open the full investigation report](Splunk_SSH_Analysis_Report.pdf)** · [Investigation steps](#investigation-steps) · [Results](#results) · [Lab details](#lab-details)
 
-## At a glance
+## Investigation steps
 
-| Events analyzed | Failed authentication events | Successful authentication events | Top suspicious source |
-| :---: | :---: | :---: | :---: |
-| **2,400** | **1,216** | **612** | **`10.0.0.25`** |
+![Eight Splunk-style searches from JSON ingestion to reusable alert logic](assets/steps.gif)
 
-## Investigation process
-
-![Illustrated four-step workflow: ingest SSH logs, examine authentication outcomes, investigate a suspicious source, and document findings.](assets/investigation.gif)
-
-[View the static workflow](assets/process.png).
-
-| Step | Focus | What to look for |
+| Search | Investigation task | SPL operation |
 | :--- | :--- | :--- |
-| **01 · Ingest** | Bring JSON-based SSH logs into Splunk | Authentication events available for analysis |
-| **02 · Examine** | Review authentication outcomes | Failed and successful login activity |
-| **03 · Investigate** | Inspect suspicious source behavior | Repeated failures, `auth_attempts`, and successful logins |
-| **04 · Document** | Record findings and detection logic | An investigation that can guide future threat hunting |
+| **01 · Ingest** | Verify the SSH dataset in `auth_logs` | Count searchable events |
+| **02 · Categorize** | Discover SSH activity types | Count by `event_type` |
+| **03 · Compare** | Review authentication outcomes | Count by `auth_success` |
+| **04 · Source** | Identify the most active source hosts | Count by `id.orig_h` |
+| **05 · Destination** | Identify targeted SSH servers | Count by `id.resp_h` |
+| **06 · Filter** | Isolate repeated failed attempts | Filter `auth_success=false` and `auth_attempts >= 5` |
+| **07 · Timeline** | Reconstruct activity from `10.0.0.25` | Sort source events chronologically |
+| **08 · Detect** | Prepare reusable alert logic | Aggregate maximum attempts by source and destination |
 
-## Key findings
+## Results
 
-> **Priority source: `10.0.0.25`**  
-> The source exhibited highly suspicious, automated behavior, with multiple failed authentication attempts, a maximum `auth_attempts` value of **8**, and **16 successful logins**.
+### Authentication overview
+
+![Splunk-style dashboard: 2400 events, 1216 failed, 612 successful, and 572 without completed authentication; four event-category counts](assets/results-overview.gif)
+
+### Suspicious source: `10.0.0.25`
+
+![Splunk-style source dashboard: 78 events, 174 failed authentication attempts, maximum 8 attempts per event, and 16 successful logins; event breakdown and incident target 10.0.1.10](assets/results-source.gif)
+
+### Analyst assessment
+
+Source `10.0.0.25` generated **18 failed-login events** and **26 multiple-failure events**, alongside **16 successful logins** and **18 connections without authentication**. Failed authentication activity totaled **174 attempts**, reaching **8 attempts in a single event**. This pattern warrants investigation for potential brute-force activity and review of the successful logins.
+
+The detection search identifies failed events with `auth_attempts >= 5` and groups candidates by source and destination. The full report includes all eight SPL searches, original Splunk screenshots, findings, and recommended controls.
 
 ## Lab details
 
@@ -41,12 +46,9 @@ An investigation of SSH login behavior using JSON-based Zeek-style logs in a loc
 | SIEM | Splunk Enterprise · local instance |
 | Operating system | Ubuntu 26.04 LTS |
 | Dataset | `ssh_logs.json` · 30-Days SOC Challenge Beginner, Day #18 |
-| Dataset format | JSON-based Zeek-style SSH logs |
-| Objective | Identify abnormal login behavior, detect potential brute-force activity, and construct reusable detection logic |
+| Format / index | JSON-based Zeek-style SSH logs / `auth_logs` |
+| Events analyzed | 2,400 |
 
-## Repository guide
+## Investigation report
 
-- **[Investigation report](Splunk_SSH_Analysis_Report.pdf)** — the original PDF report.
-- **[Visual assets](assets/)** — README banner, animated walkthrough, and static overview.
-- **[Visual generator](scripts/generate_visuals.py)** — editable source for the visuals; regeneration instructions are in [assets/README.md](assets/README.md).
-
+**[Read the Splunk SSH Analysis Report (PDF)](Splunk_SSH_Analysis_Report.pdf)**
